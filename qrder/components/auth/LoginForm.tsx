@@ -21,10 +21,11 @@ export function LoginForm() {
     const validationError = validateMobileNumber(mobile);
     setError(validationError);
 
-    if (!validationError) {
-      void sendOtp(mobile);
+    if (validationError) {
+      return;
     }
 
+    void sendOtp(mobile);
     setStep("otp");
   };
 
@@ -58,11 +59,16 @@ export function LoginForm() {
   };
 
   return (
-    <div className="relative z-20 w-full max-w-md rounded-2xl p-8 shadow-xl">
+    <div className="w-full max-w-md rounded-3xl bg-card p-8 shadow-lg">
       <div key={step}>
         {step === "login" ? (
           <>
-            <h2 className="mb-6 text-center text-4xl font-semibold">Login</h2>
+            <h2 className="mb-2 text-center font-serif text-3xl font-bold text-dark">
+              Login
+            </h2>
+            <p className="mb-6 text-center text-sm text-muted">
+              Enter your mobile number to continue
+            </p>
 
             <form className="space-y-4" onSubmit={handleLoginSubmit} noValidate>
               <PhoneInput
@@ -74,7 +80,7 @@ export function LoginForm() {
                 error={error ?? undefined}
               />
 
-              <Button type="submit" className="mt-14 cursor-pointer">
+              <Button type="submit" className="mt-8 rounded-full">
                 Login
               </Button>
             </form>

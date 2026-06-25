@@ -61,19 +61,19 @@ export function PhoneInput({
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-lg font-medium text-muted"
+        className="mb-2 block text-sm font-medium text-muted"
       >
         {label}
       </label>
 
       <div
-        className={`flex overflow-hidden rounded-lg border outline-none ${
+        className={`flex overflow-hidden rounded-2xl border outline-none ${
           error
             ? "border-red-500 focus-within:border-red-500"
-            : "border-gray-300 focus-within:border-brand"
+            : "border-cream-dark focus-within:border-brand"
         }`}
       >
-        <span className="flex items-center border-r border-gray-300 bg-hazel-black px-4 py-3 text-white">
+        <span className="flex items-center border-r border-cream-dark bg-cream px-4 py-3 text-sm font-medium text-dark">
           +91
         </span>
         <input
@@ -87,10 +87,14 @@ export function PhoneInput({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           aria-invalid={error ? true : undefined}
-          className={`w-full px-5 py-3 outline-none ${className}`}
+          className={`w-full bg-cream px-4 py-3 text-dark outline-none ${className}`}
           {...props}
         />
       </div>
+
+      {error ? (
+        <p className="mt-1.5 text-sm text-red-500">{error}</p>
+      ) : null}
     </div>
   );
 }

@@ -1,12 +1,12 @@
 const MOBILE_LENGTH = 10;
-const VALID_FIRST_DIGIT = "6";
+const VALID_FIRST_DIGITS = new Set(["6", "7", "8", "9"]);
 
 export function sanitizeMobileInput(value: string): string {
   return value.replace(/\D/g, "").slice(0, MOBILE_LENGTH);
 }
 
 export function getInvalidFirstDigitError(mobile: string): string | null {
-  if (mobile.length > 0 && !mobile.startsWith(VALID_FIRST_DIGIT)) {
+  if (mobile.length > 0 && !VALID_FIRST_DIGITS.has(mobile[0])) {
     return "Enter valid Mobile number";
   }
 

@@ -59,7 +59,7 @@ export function OtpInput({ id, label, value, onChange, error }: OtpInputProps) {
 
   return (
     <div>
-      <label className="mb-2 block text-lg font-medium text-muted">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-muted">{label}</label>
 
       <div
         id={id}
@@ -83,10 +83,10 @@ export function OtpInput({ id, label, value, onChange, error }: OtpInputProps) {
             onKeyDown={(event) => handleKeyDown(index, event)}
             onPaste={handlePaste}
             onFocus={(event) => event.target.select()}
-            className={`h-14 w-full max-w-12 rounded-lg border text-center text-2xl font-semibold outline-none ${
+            className={`h-12 w-full max-w-11 rounded-xl border bg-cream text-center text-xl font-semibold text-dark outline-none ${
               error
                 ? "border-red-500 focus:border-red-500"
-                : "border-gray-300 focus:border-brand"
+                : "border-cream-dark focus:border-brand"
             }`}
           />
         ))}

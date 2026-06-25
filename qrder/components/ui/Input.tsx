@@ -9,13 +9,13 @@ export function Input({ id, label, className = "", ...props }: InputProps) {
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-lg font-medium text-muted"
+        className="mb-2 block text-sm font-medium text-muted"
       >
         {label}
       </label>
       <input
         id={id}
-        className={`w-full rounded-lg border border-gray-300 px-5 py-3 outline-none focus:border-brand ${className}`}
+        className={`w-full rounded-2xl border border-cream-dark bg-cream px-4 py-3 text-dark outline-none focus:border-brand ${className}`}
         {...props}
       />
     </div>

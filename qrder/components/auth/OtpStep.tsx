@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { OtpInput } from "@/components/ui/OtpInput";
@@ -15,6 +16,7 @@ type OtpStepProps = {
 };
 
 export function OtpStep({ mobile, onBack }: OtpStepProps) {
+  const router = useRouter();
   const [otp, setOtp] = useState("");
   const [fullName, setFullName] = useState("");
   const [otpError, setOtpError] = useState(false);
@@ -45,7 +47,8 @@ export function OtpStep({ mobile, onBack }: OtpStepProps) {
       return;
     }
 
-    // TODO: verify OTP and complete login
+    // TODO: verify OTP with API
+    router.push("/menu");
   };
 
   const handleOtpChange = (value: string) => {
@@ -66,8 +69,12 @@ export function OtpStep({ mobile, onBack }: OtpStepProps) {
 
   return (
     <>
-      <h2 className="mb-2 text-center text-4xl font-semibold">Verify OTP</h2>
-      <p className="mb-6 text-center text-muted">OTP sent to +91 {mobile}</p>
+      <h2 className="mb-2 text-center font-serif text-3xl font-bold text-dark">
+        Verify OTP
+      </h2>
+      <p className="mb-6 text-center text-sm text-muted">
+        OTP sent to +91 {mobile}
+      </p>
 
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <OtpInput
@@ -79,25 +86,25 @@ export function OtpStep({ mobile, onBack }: OtpStepProps) {
         />
 
         <div className="flex flex-col items-center gap-1 pt-1">
-          <p className="text-base text-muted">Didn&apos;t receive OTP?</p>
+          <p className="text-sm text-muted">Didn&apos;t receive OTP?</p>
 
           {canResend ? (
             <button
               type="button"
               onClick={handleResendClick}
               disabled={isResending}
-              className="cursor-pointer rounded-lg px-2 py-1 text-base font-semibold text-brand transition-all duration-200 ease-in-out hover:bg-brand/10 hover:underline active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:no-underline disabled:active:scale-100"
+              className="cursor-pointer rounded-lg px-2 py-1 text-sm font-semibold text-brand transition-all duration-200 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isResending ? "Resending..." : "Resend OTP"}
             </button>
           ) : (
-            <p className="text-base font-medium text-muted">
+            <p className="text-sm font-medium text-muted">
               Resend OTP in {formattedTime}
             </p>
           )}
 
           {resendMessage ? (
-            <p className="text-base font-medium text-brand">{resendMessage}</p>
+            <p className="text-sm font-medium text-brand">{resendMessage}</p>
           ) : null}
         </div>
 
@@ -112,7 +119,7 @@ export function OtpStep({ mobile, onBack }: OtpStepProps) {
           className={nameError ? "border-red-500 focus:border-red-500" : ""}
         />
 
-        <Button type="submit" className="mt-6">
+        <Button type="submit" className="mt-4 rounded-full">
           Verify
         </Button>
       </form>
@@ -120,7 +127,7 @@ export function OtpStep({ mobile, onBack }: OtpStepProps) {
       <button
         type="button"
         onClick={onBack}
-        className="mt-4 w-full cursor-pointer rounded-lg py-2 text-center text-base font-medium text-brand transition-all duration-200 ease-in-out hover:bg-brand/10 hover:underline active:scale-[0.98]"
+        className="mt-4 w-full cursor-pointer rounded-lg py-2 text-center text-sm font-medium text-brand transition-colors hover:underline"
       >
         Change mobile number
       </button>
