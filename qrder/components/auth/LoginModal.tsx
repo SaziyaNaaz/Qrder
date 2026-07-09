@@ -30,7 +30,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps)
     setError(null);
     try {
       await api.sendOtp(phoneNumber);
-      // Switch to OTP step handled by parent state
+      setStep("otp"); // Switch to OTP step after sending
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send OTP");
     } finally {
