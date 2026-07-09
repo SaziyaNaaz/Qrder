@@ -9,7 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import { GST_RATE } from "@/lib/constants";
-import type { CartLine, Dish } from "@/lib/types/menu";
+import type { Dish } from "@/lib/types/menu";
+
+export interface CartLine {
+  dish: Dish;
+  quantity: number;
+  menuItemId?: string; // Backend menu item ID for API
+}
 
 type CartContextValue = {
   items: CartLine[];
@@ -18,7 +24,7 @@ type CartContextValue = {
   subtotal: number;
   tax: number;
   total: number;
-  addItem: (dish: Dish) => void;
+  addItem: (dish: Dish, menuItemId?: string) => void;
   removeItem: (dishId: string) => void;
   updateQuantity: (dishId: string, quantity: number) => void;
   setSpecialInstructions: (value: string) => void;
@@ -31,7 +37,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLine[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState("");
 
-  const addItem = useCallback((dish: Dish) => {
+  const addItem = useCallback((dish: Dish, menuItemId?: string) => {
     setItems((current) => {
       const existing = current.find((line) => line.dish.id === dish.id);
       if (existing) {
@@ -41,7 +47,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : line,
         );
       }
-      return [...current, { dish, quantity: 1 }];
+      return [...current, { dish, quantity: 1, menuItemId }];
     });
   }, []);
 

@@ -6,11 +6,17 @@ import type { Dish } from "@/lib/types/menu";
 
 type DishCardProps = {
   dish: Dish;
-  onAdd: (dish: Dish) => void;
+  onAdd: (dish: Dish, menuItemId?: string) => void;
   variant?: "card" | "row";
 };
 
-export function DishCard({ dish, onAdd, variant = "card" }: DishCardProps) {
+export function DishCard({
+  dish,
+  onAdd,
+  variant = "card",
+}: DishCardProps) {
+  const menuItemId = (dish as Dish & { menuItemId?: string }).menuItemId;
+
   if (variant === "row") {
     return (
       <div className="flex gap-4 rounded-2xl bg-card p-3 shadow-sm">
@@ -33,7 +39,7 @@ export function DishCard({ dish, onAdd, variant = "card" }: DishCardProps) {
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => onAdd(dish)}
+              onClick={() => onAdd(dish, menuItemId)}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-lg font-medium text-white transition-transform active:scale-95"
               aria-label={`Add ${dish.name}`}
             >
@@ -63,7 +69,7 @@ export function DishCard({ dish, onAdd, variant = "card" }: DishCardProps) {
         <p className="mt-1 text-sm text-muted">{formatPrice(dish.price)}</p>
         <button
           type="button"
-          onClick={() => onAdd(dish)}
+          onClick={() => onAdd(dish, menuItemId)}
           className="absolute -top-5 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xl font-medium text-white shadow-md transition-transform active:scale-95"
           aria-label={`Add ${dish.name}`}
         >

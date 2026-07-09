@@ -3,21 +3,23 @@
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { PhoneInput } from "@/components/ui/PhoneInput";
-import { OtpStep } from "@/components/auth/OtpStep";
 import { sendOtp } from "@/lib/auth/otp";
 import {
   getInvalidFirstDigitError,
   validateMobileNumber,
 } from "@/lib/validation/mobile";
 
-type AuthStep = "login" | "otp";
+interface LoginFormProps {
+  onLogin: (phoneNumber: string) => Promise<void>;
+  onClose?: () => void;
+  isLoading?: boolean;
+}
 
-export function LoginForm() {
-  const [step, setStep] = useState<AuthStep>("login");
+export function LoginForm({ onLogin, onClose, isLoading = false }: LoginFormProps) {
   const [mobile, setMobile] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const validationError = validateMobileNumber(mobile);
     setError(validationError);
 
@@ -25,8 +27,7 @@ export function LoginForm() {
       return;
     }
 
-    void sendOtp(mobile);
-    setStep("otp");
+    await onLogin(mobile);
   };
 
   const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -53,42 +54,27 @@ export function LoginForm() {
     setError(null);
   };
 
-  const handleBackToLogin = () => {
-    setStep("login");
-    setError(null);
-  };
-
   return (
-    <div className="w-full max-w-md rounded-3xl bg-card p-8 shadow-lg">
-      <div key={step}>
-        {step === "login" ? (
-          <>
-            <h2 className="mb-2 text-center font-serif text-3xl font-bold text-dark">
-              Login
-            </h2>
-            <p className="mb-6 text-center text-sm text-muted">
-              Enter your mobile number to continue
-            </p>
+    <form className="space-y-4" onSubmit={handleLoginSubmit} noValidate>
+      <PhoneInput
+        id="mobile"
+        label="Mobile Number"
+        placeholder="Enter mobile number"
+        value={mobile}
+        onChange={handleMobileChange}
+        error={error ?? undefined}
+        disabled={isLoading}
+      />
 
-            <form className="space-y-4" onSubmit={handleLoginSubmit} noValidate>
-              <PhoneInput
-                id="mobile"
-                label="Mobile Number"
-                placeholder="Enter mobile number"
-                value={mobile}
-                onChange={handleMobileChange}
-                error={error ?? undefined}
-              />
+      {error && (
+        <p className="text-sm text-red-600 text-center" role="alert">
+          {error}
+        </p>
+      )}
 
-              <Button type="submit" className="mt-8 rounded-full">
-                Login
-              </Button>
-            </form>
-          </>
-        ) : (
-          <OtpStep mobile={mobile} onBack={handleBackToLogin} />
-        )}
-      </div>
-    </div>
+      <Button type="submit" className="mt-8 rounded-full" disabled={isLoading}>
+        {isLoading ? "Sending OTP..." : "Send OTP"}
+      </Button>
+    </form>
   );
 }

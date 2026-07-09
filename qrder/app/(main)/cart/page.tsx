@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
@@ -8,19 +9,74 @@ import { CartItemsList } from "@/components/cart/CartItemsList";
 import { Button } from "@/components/ui/Button";
 import { RESTAURANT_NAME, TABLE_NUMBER } from "@/lib/constants";
 import { useCart } from "@/lib/context/CartContext";
+import { useRestaurant } from "@/lib/context/RestaurantContext";
+import { api, isAuthenticated } from "@/lib/api";
+import { LoginModal } from "@/components/auth/LoginModal";
+import type { CreateOrderRequest } from "@/lib/api/types";
 
 export default function CartPage() {
   const router = useRouter();
   const { items, specialInstructions, setSpecialInstructions, clearCart } =
     useCart();
+  const { restaurantCode, tableCode } = useRestaurant();
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<CreateOrderRequest | null>(null);
 
   const handlePlaceOrder = () => {
-    if (items.length === 0) {
+    if (items.length === 0) return;
+
+    if (!restaurantCode) {
+      setError("Restaurant information not found. Please scan the QR code again.");
       return;
     }
 
-    clearCart();
-    router.push("/order-placed");
+    const orderRequest: CreateOrderRequest = {
+      restaurant_code: restaurantCode,
+      table_code: tableCode,
+      items: items.map((line) => ({
+        menu_item_id: line.menuItemId ?? line.dish.id,
+        quantity: line.quantity,
+      })),
+      customer_note: specialInstructions || undefined,
+    };
+
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+      setPendingOrder(orderRequest);
+      setShowLoginModal(true);
+      return;
+    }
+
+    executeOrder(orderRequest);
+  };
+
+  const executeOrder = async (orderRequest: CreateOrderRequest) => {
+    setIsPlacingOrder(true);
+    setError(null);
+
+    try {
+      await api.createOrder(orderRequest);
+      clearCart();
+      router.push("/order-placed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to place order. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    if (pendingOrder) {
+      executeOrder(pendingOrder);
+      setPendingOrder(null);
+    }
+  };
+
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false);
+    setPendingOrder(null);
   };
 
   return (
@@ -30,7 +86,7 @@ export default function CartPage() {
           Your Cart
         </h1>
         <p className="mt-2 text-center text-sm text-muted">
-          Table {TABLE_NUMBER} • {RESTAURANT_NAME}
+          Table {tableCode ?? TABLE_NUMBER} &bull; {RESTAURANT_NAME}
         </p>
 
         <div className="mt-6 space-y-4">
@@ -64,11 +120,17 @@ export default function CartPage() {
           <Button
             type="button"
             onClick={handlePlaceOrder}
-            disabled={items.length === 0}
+            disabled={items.length === 0 || isPlacingOrder}
             className="rounded-full"
           >
-            Place Order
+            {isPlacingOrder ? "Placing Order..." : "Place Order"}
           </Button>
+
+          {error && (
+            <p className="text-center text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
           {items.length === 0 ? (
             <Link
@@ -80,6 +142,12 @@ export default function CartPage() {
           ) : null}
         </div>
       </div>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleCloseLoginModal}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </AppShell>
   );
 }

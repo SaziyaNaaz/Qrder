@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { CartProvider } from "@/lib/context/CartContext";
+import { RestaurantProvider } from "@/lib/context/RestaurantContext";
 import { ServiceWorkerProvider } from "@/components/providers/ServiceWorkerProvider";
 import {
   APP_DESCRIPTION,
@@ -57,7 +58,9 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-cream text-dark">
         <CartProvider>
-          <ServiceWorkerProvider>{children}</ServiceWorkerProvider>
+          <RestaurantProvider>
+            <ServiceWorkerProvider>{children}</ServiceWorkerProvider>
+          </RestaurantProvider>
         </CartProvider>
       </body>
     </html>
