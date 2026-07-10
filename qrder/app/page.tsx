@@ -75,20 +75,20 @@ function QRScanSimulator() {
           <div className="absolute inset-4 rounded-[32px] bg-gradient-to-br from-cream via-cream to-cream-dark overflow-hidden p-6 flex flex-col transition-all duration-500">
 
             {/* Stage 1: Camera View */}
-            {stage === "idle" || stage === "scanning" ? (
+            {stageRef.current === "idle" || stageRef.current === "scanning" ? (
               <div className="flex-1 flex flex-col items-center justify-center relative">
                 {/* Camera viewfinder */}
                 <div className="relative w-full h-full max-w-[280px] max-h-[280px]">
                   {/* QR Code on "table" */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className={`relative w-48 h-48 bg-white rounded-xl shadow-2xl transition-all duration-500 ${
-                      stage === "scanning" ? "scale-95 opacity-80" : ""
+                      stageRef.current === "scanning" ? "scale-95 opacity-80" : ""
                     }`}>
                       {/* QR Code pattern */}
                       <div className="absolute inset-4 flex flex-wrap items-center justify-center gap-0.5 p-2">
                         {[...Array(144)].map((_, i) => {
                           const delay = Math.round(pseudoRandom(i + 1000) * 200 * 1000) / 1000;
-                          const opacity = stage === "scanning" ? "0.7" : "1";
+                          const opacity = stageRef.current === "scanning" ? "0.7" : "1";
                           return (
                             <div
                               key={i}
@@ -112,7 +112,7 @@ function QRScanSimulator() {
                   {/* Viewfinder overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className={`relative w-56 h-56 border-2 border-brand/50 rounded-xl transition-all duration-500 ${
-                      stage === "scanning" ? "border-brand shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]" : "border-slate-600/50"
+                      stageRef.current === "scanning" ? "border-brand shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]" : "border-slate-600/50"
                     }`}>
                       {/* Corner brackets */}
                       <div className="absolute -top-1.5 -left-1.5 w-6 h-6 border-t-4 border-l-4 border-brand/30 rounded-tl-xl" />
@@ -121,13 +121,13 @@ function QRScanSimulator() {
                       <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 border-b-4 border-r-4 border-brand/30 rounded-br-xl" />
 
                       {/* Scanning line */}
-                      {stage === "scanning" && (
+                      {stageRef.current === "scanning" && (
                         <div className="absolute left-2 right-2 h-1 bg-brand/80 shadow-[0_0_8px_#b49772] animate-scan-line"
                              style={{ top: `${scanProgress}%` }} />
                       )}
 
                       {/* Success checkmark */}
-                      {stage === "success" && (
+                      {stageRef.current === "success" && (
                         <div className="absolute inset-0 flex items-center justify-center animate-scale-in">
                           <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
                             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
@@ -142,14 +142,14 @@ function QRScanSimulator() {
 
                 {/* Instruction text */}
                 <div className={`mt-6 text-center transition-all duration-300 ${
-                  stage === "scanning" ? "opacity-0" : "opacity-100"
+                  stageRef.current === "scanning" ? "opacity-0" : "opacity-100"
                 }`}>
                   <p className="text-sm text-muted">Point camera at QR code</p>
                   <p className="text-xs text-slate-400 mt-1">No app download required</p>
                 </div>
 
                 {/* Scanning label */}
-                {stage === "scanning" && (
+                {stageRef.current === "scanning" && (
                   <div className="mt-6 text-center animate-pulse">
                     <p className="text-sm font-medium text-brand flex items-center justify-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-brand animate-ping" />
@@ -158,7 +158,7 @@ function QRScanSimulator() {
                   </div>
                 )}
 
-                {stage === "success" && (
+                {stageRef.current === "success" && (
                   <div className="mt-6 text-center animate-fade-in">
                     <p className="text-sm font-medium text-green-600">Table detected!</p>
                     <p className="text-xs text-muted mt-1">Opening menu...</p>
@@ -168,7 +168,7 @@ function QRScanSimulator() {
             ) : null}
 
             {/* Stage 2: Menu View */}
-            {stage === "menu" && (
+            {stageRef.current === "menu" && (
               <div className="flex-1 flex flex-col animate-slide-in-up">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2 text-sm text-muted">
