@@ -78,7 +78,7 @@ function QRScanSimulator() {
             {(() => {
               const currentStage = stageRef.current;
               return currentStage === "idle" || currentStage === "scanning" ? (
-              <div className="flex-1 flex flex-col items-center justify-center relative">
+                <div className="flex-1 flex flex-col items-center justify-center relative">
                 {/* Camera viewfinder */}
                 <div className="relative w-full h-full max-w-[280px] max-h-[280px]">
                   {/* QR Code on "table" */}
@@ -241,7 +241,8 @@ function QRScanSimulator() {
                   </div>
                 </div>
               </div>
-            )}
+              ) : null
+            )()}
           </div>
         </div>
       </div>
