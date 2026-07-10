@@ -156,7 +156,7 @@ function OrderCard({ order, isExpanded, onToggle, statusColors, statusLabels }: 
       {isExpanded && (
         <div className="mt-4 space-y-3 border-t border-cream-dark pt-4">
           <div className="space-y-2">
-            {order.items.map((item: TransformedOrderItem, index) => (
+            {order.items.map((item: TransformedOrderItem, index: number) => (
               <div key={index} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <span className="w-10 h-10 rounded-xl bg-cream flex items-center justify-center">
