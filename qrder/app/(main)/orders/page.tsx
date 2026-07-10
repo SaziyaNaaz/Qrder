@@ -145,10 +145,8 @@ function OrderCard({ order, isExpanded, onToggle, statusColors, statusLabels }: 
         </div>
         <Button
           type="button"
-          variant="ghost"
-          size="sm"
           onClick={onToggle}
-          className="px-2 py-1"
+          className="px-2 py-1 text-sm font-medium text-brand hover:bg-brand/10 hover:text-brand-dark"
           aria-expanded={isExpanded}
         >
           {isExpanded ? "Hide" : "View"} Details
