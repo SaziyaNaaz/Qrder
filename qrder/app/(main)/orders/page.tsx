@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { RESTAURANT_NAME, TABLE_NUMBER } from "@/lib/constants";
-import { useOrders, type TransformedOrder, transformOrder } from "@/lib/api/hooks";
+import { useOrders, type TransformedOrder, type TransformedOrderItem, transformOrder } from "@/lib/api/hooks";
 import { formatPrice } from "@/lib/data/menu";
 
 export default function OrdersPage() {
@@ -156,7 +156,7 @@ function OrderCard({ order, isExpanded, onToggle, statusColors, statusLabels }: 
       {isExpanded && (
         <div className="mt-4 space-y-3 border-t border-cream-dark pt-4">
           <div className="space-y-2">
-            {order.items.map((item, index) => (
+            {order.items.map((item: TransformedOrderItem, index) => (
               <div key={index} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <span className="w-10 h-10 rounded-xl bg-cream flex items-center justify-center">
