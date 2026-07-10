@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR, { mutate, SWRConfiguration } from "swr";
-import { api, type OrderResponse, type OrderListResponse, type CustomerMenuResponse } from "@/lib/api/client";
+import { api, type OrderResponse, type OrderListResponse, type CustomerMenuResponse, type OrderItemResponse } from "@/lib/api/client";
 
 const fetcher = <T>(key: string): Promise<T> => {
   const [method, endpoint] = key.split("::");
@@ -52,6 +52,34 @@ export function useMenuWithTable(
   );
 }
 
+// Transform API order items to component format
+function transformOrderItem(item: OrderItemResponse) {
+  return {
+    dish: {
+      name: item.name,
+    },
+    price: parseFloat(item.price),
+    quantity: item.quantity,
+    itemNote: item.item_note,
+  };
+}
+
+// Transform API order to component format
+function transformOrder(order: OrderResponse) {
+  return {
+    id: order.id,
+    orderNumber: order.order_number,
+    status: order.status,
+    items: order.items.map(transformOrderItem),
+    subtotal: parseFloat(order.subtotal),
+    tax: parseFloat(order.tax_total),
+    total: parseFloat(order.total_amount),
+    specialInstructions: order.customer_note,
+    tableNumber: order.table_id ?? "Unknown",
+    createdAt: order.created_at,
+  };
+}
+
 export function useOrders(config?: SWRConfiguration<OrderListResponse>) {
   return useSWR<OrderListResponse>("GET_ORDERS::/api/v1/orders", fetcher, {
     revalidateOnFocus: false,
@@ -74,3 +102,8 @@ export async function revalidateMenu(restaurantCode: string) {
 export async function revalidateOrders() {
   await mutate("GET_ORDERS::/api/v1/orders");
 }
+
+// Type exports for components
+export type TransformedOrder = ReturnType<typeof transformOrder>;
+export type TransformedOrderItem = ReturnType<typeof transformOrderItem>;
+export { transformOrder, transformOrderItem };

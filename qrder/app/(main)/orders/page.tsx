@@ -5,12 +5,13 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { RESTAURANT_NAME, TABLE_NUMBER } from "@/lib/constants";
-import { useOrders } from "@/lib/api/hooks";
+import { useOrders, type TransformedOrder, transformOrder } from "@/lib/api/hooks";
 import { formatPrice } from "@/lib/data/menu";
-import type { Order } from "@/lib/api/client";
 
 export default function OrdersPage() {
-  const { data: orders, error, isLoading, mutate } = useOrders();
+  const { data: ordersData, error, isLoading, mutate } = useOrders();
+  const rawOrders = ordersData?.orders ?? [];
+  const orders: TransformedOrder[] = rawOrders.map(transformOrder);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -64,7 +65,7 @@ export default function OrdersPage() {
     );
   }
 
-  const statusColors: Record<Order["status"], string> = {
+  const statusColors: Record<TransformedOrder["status"], string> = {
     pending: "bg-amber-100 text-amber-800",
     accepted: "bg-blue-100 text-blue-800",
     preparing: "bg-orange-100 text-orange-800",
@@ -74,7 +75,7 @@ export default function OrdersPage() {
     cancelled: "bg-red-100 text-red-800",
   };
 
-  const statusLabels: Record<Order["status"], string> = {
+  const statusLabels: Record<TransformedOrder["status"], string> = {
     pending: "Pending",
     accepted: "Confirmed",
     preparing: "Preparing",
@@ -88,7 +89,7 @@ export default function OrdersPage() {
     <AppShell>
       <div className="px-4 py-6">
         <h1 className="text-center font-serif text-3xl font-bold text-dark">Your Orders</h1>
-        <p className="mt-2 text-center text-sm text-muted">Table {TABLE_NUMBER} • {RESTAURANT_NAME}</p>
+        <p className="mt-2 text-center text-sm text-muted">Table {TABLE_NUMBER} &bull; {RESTAURANT_NAME}</p>
 
         <div className="mt-6 space-y-4">
           {orders.slice().reverse().map((order) => (
@@ -114,11 +115,11 @@ export default function OrdersPage() {
 }
 
 interface OrderCardProps {
-  order: Order;
+  order: TransformedOrder;
   isExpanded: boolean;
   onToggle: () => void;
-  statusColors: Record<Order["status"], string>;
-  statusLabels: Record<Order["status"], string>;
+  statusColors: Record<TransformedOrder["status"], string>;
+  statusLabels: Record<TransformedOrder["status"], string>;
 }
 
 function OrderCard({ order, isExpanded, onToggle, statusColors, statusLabels }: OrderCardProps) {
@@ -135,7 +136,7 @@ function OrderCard({ order, isExpanded, onToggle, statusColors, statusLabels }: 
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-dark">Order #{order.id.slice(-8).toUpperCase()}</p>
+            <p className="font-medium text-dark">Order #{order.orderNumber.slice(-8).toUpperCase()}</p>
             <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full ${statusColors[order.status]}`}>
               {statusLabels[order.status]}
             </span>
