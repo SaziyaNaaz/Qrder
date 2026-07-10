@@ -12,6 +12,7 @@ import type {
   OrderResponse,
   OrderListResponse,
   OrderStatus,
+  OrderItemResponse,
 } from "@/lib/api/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://getqrder.atharvat.in";
@@ -179,3 +180,7 @@ export function isAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
   return !!localStorage.getItem("access_token");
 }
+
+// Type aliases for convenience
+export type Order = OrderResponse;
+export type OrderItem = OrderItemResponse;
