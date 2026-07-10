@@ -1,11 +1,249 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
 import { useRestaurant } from "@/lib/context/RestaurantContext";
+
+// Deterministic pseudo-random for consistent SSR/client rendering
+function pseudoRandom(seed: number) {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// QR Scan Simulator Component
+function QRScanSimulator() {
+  const [stage, setStage] = useState<"idle" | "scanning" | "success" | "menu">("idle");
+  const [scanProgress, setScanProgress] = useState(0);
+  const [hasPlayed, setHasPlayed] = useState(false);
+  const stageRef = useRef(stage);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  stageRef.current = stage;
+
+  const startSequence = useCallback(() => {
+    if (hasPlayed) return;
+    setHasPlayed(true);
+    setStage("scanning");
+    setScanProgress(0);
+
+    // Scanning animation
+    scanIntervalRef.current = setInterval(() => {
+      setScanProgress(prev => {
+        if (prev >= 100) {
+          if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+          setStage("success");
+          setTimeout(() => setStage("menu"), 1000);
+          return 100;
+        }
+        return prev + 2;
+      });
+    }, 50);
+  }, [hasPlayed]);
+
+  const reset = useCallback(() => {
+    setHasPlayed(false);
+    setStage("idle");
+    setScanProgress(0);
+    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    };
+  }, []);
+
+  return (
+    <div
+      className="relative mx-auto max-w-xs cursor-pointer"
+      onMouseEnter={startSequence}
+      onTouchStart={startSequence}
+      onClick={reset}
+    >
+      {/* Phone frame */}
+      <div className="relative aspect-[9/19.5] max-w-xs mx-auto">
+        <div className="absolute inset-0 rounded-[40px] bg-gradient-to-b from-slate-800 via-slate-900 to-slate-800 shadow-2xl ring-4 ring-slate-700 ring-offset-2 ring-offset-cream">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-slate-700 rounded-full" />
+
+          {/* Camera notch */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-1 w-16 h-2.5 bg-slate-900 rounded-b-xl z-10" />
+
+          {/* Screen content - animated based on stage */}
+          <div className="absolute inset-4 rounded-[32px] bg-gradient-to-br from-cream via-cream to-cream-dark overflow-hidden p-6 flex flex-col transition-all duration-500">
+
+            {/* Stage 1: Camera View */}
+            {stage === "idle" || stage === "scanning" ? (
+              <div className="flex-1 flex flex-col items-center justify-center relative">
+                {/* Camera viewfinder */}
+                <div className="relative w-full h-full max-w-[280px] max-h-[280px]">
+                  {/* QR Code on "table" */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className={`relative w-48 h-48 bg-white rounded-xl shadow-2xl transition-all duration-500 ${
+                      stage === "scanning" ? "scale-95 opacity-80" : ""
+                    }`}>
+                      {/* QR Code pattern */}
+                      <div className="absolute inset-4 flex flex-wrap items-center justify-center gap-0.5 p-2">
+                        {[...Array(144)].map((_, i) => {
+                          const delay = Math.round(pseudoRandom(i + 1000) * 200 * 1000) / 1000;
+                          const opacity = stage === "scanning" ? "0.7" : "1";
+                          return (
+                            <div
+                              key={i}
+                              className={`w-2 h-2 transition-all duration-300 ${
+                                pseudoRandom(i) > 0.45 ? "bg-slate-900" : "bg-white"
+                              }`}
+                              style={{
+                                animationDelay: `${delay}ms`,
+                                opacity: opacity
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-slate-500 font-medium">
+                        Table 12
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Viewfinder overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className={`relative w-56 h-56 border-2 border-brand/50 rounded-xl transition-all duration-500 ${
+                      stage === "scanning" ? "border-brand shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]" : "border-slate-600/50"
+                    }`}>
+                      {/* Corner brackets */}
+                      <div className="absolute -top-1.5 -left-1.5 w-6 h-6 border-t-4 border-l-4 border-brand/30 rounded-tl-xl" />
+                      <div className="absolute -top-1.5 -right-1.5 w-6 h-6 border-t-4 border-r-4 border-brand/30 rounded-tr-xl" />
+                      <div className="absolute -bottom-1.5 -left-1.5 w-6 h-6 border-b-4 border-l-4 border-brand/30 rounded-bl-xl" />
+                      <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 border-b-4 border-r-4 border-brand/30 rounded-br-xl" />
+
+                      {/* Scanning line */}
+                      {stage === "scanning" && (
+                        <div className="absolute left-2 right-2 h-1 bg-brand/80 shadow-[0_0_8px_#b49772] animate-scan-line"
+                             style={{ top: `${scanProgress}%` }} />
+                      )}
+
+                      {/* Success checkmark */}
+                      {stage === "success" && (
+                        <div className="absolute inset-0 flex items-center justify-center animate-scale-in">
+                          <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instruction text */}
+                <div className={`mt-6 text-center transition-all duration-300 ${
+                  stage === "scanning" ? "opacity-0" : "opacity-100"
+                }`}>
+                  <p className="text-sm text-muted">Point camera at QR code</p>
+                  <p className="text-xs text-slate-400 mt-1">No app download required</p>
+                </div>
+
+                {/* Scanning label */}
+                {stage === "scanning" && (
+                  <div className="mt-6 text-center animate-pulse">
+                    <p className="text-sm font-medium text-brand flex items-center justify-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-brand animate-ping" />
+                      Scanning QR code...
+                    </p>
+                  </div>
+                )}
+
+                {stage === "success" && (
+                  <div className="mt-6 text-center animate-fade-in">
+                    <p className="text-sm font-medium text-green-600">Table detected!</p>
+                    <p className="text-xs text-muted mt-1">Opening menu...</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Stage 2: Menu View */}
+            {stage === "menu" && (
+              <div className="flex-1 flex flex-col animate-slide-in-up">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-sm text-muted">
+                    <div className="h-6 w-6 rounded-full bg-brand/20 flex items-center justify-center animate-pulse-ring">
+                      <svg className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
+                    </div>
+                    <span>Table 12</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm">
+                    <span className="text-yellow-400">★</span>
+                    <span className="font-semibold text-dark">4.8</span>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-3 pr-2 overflow-y-auto">
+                  {[
+                    { name: "Truffle Risotto", price: "₹420", veg: true },
+                    { name: "Herb Crusted Salmon", price: "₹380", veg: false },
+                    { name: "Chocolate Lava Cake", price: "₹280", veg: true },
+                    { name: "Butter Garlic Prawns", price: "₹240", veg: false },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-3 bg-white/50 rounded-2xl backdrop-blur-sm hover-lift card-shine animate-slide-in-right"
+                      style={{ animationDelay: `${100 + i * 80}ms` }}
+                    >
+                      <div className="h-14 w-14 rounded-xl bg-cream flex items-center justify-center flex-shrink-0 img-zoom">
+                        <svg className="h-7 w-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0012 7.5a8.967 8.967 0 000-1.458z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.338 12.033a12.094 12.094 0 01-.377 2.9a.75.75 0 01-1.102-.258c-.434-.912-.98-1.754-1.664-2.51a.75.75 0 11.688-1.39c.762.856 1.431 1.824 2.078 2.868a.75.75 0 01-.259 1.103z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.662 12.033a12.094 12.094 0 00.377 2.9.75.75 0 001.102-.258c.434-.912.98-1.754 1.664-2.51.35-.788.577-1.616.577-2.478 0-.863-.227-1.689-.577-2.477a.75.75 0 10-1.376.516c.26.738.481 1.467.481 2.224 0 .756-.221 1.485-.481 2.224a.75.75 0 00.258 1.283z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-dark truncate">{item.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="font-semibold text-brand text-sm">{item.price}</span>
+                          {item.veg && (
+                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-100">
+                              <svg className="h-2.5 w-2.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                            </span>
+                          )}
+                        </div>
+                        <button className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-brand hover:bg-brand/20 transition-colors hover:scale-110 mt-1">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Cart bar */}
+                <div className="mt-4 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-cream-dark hover-lift animate-slide-in-up">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted">Your Cart</p>
+                      <p className="font-bold text-dark">3 items • ₹1,320</p>
+                    </div>
+                    <button className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark hover:scale-105">
+                      Checkout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const features = [
   {
@@ -36,6 +274,63 @@ const features = [
     ),
   },
 ];
+
+// Stat Counter Component
+function StatCounter({ value, suffix, label, icon, delay = 0 }: { value: number; suffix: string; label: string; icon: React.ReactNode; delay?: number }) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const duration = 2000;
+    const steps = 60;
+    const increment = value / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current * 10) / 10);
+      }
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [isVisible, value]);
+
+  const displayValue = Number.isInteger(value) ? Math.floor(count) : count.toFixed(1);
+
+  return (
+    <div ref={ref} className="text-center p-6" style={{ animationDelay: `${delay}ms` }}>
+      <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="h-16 w-16 rounded-2xl bg-brand/10 flex items-center justify-center text-brand">
+          {icon}
+        </div>
+      </div>
+      <div className="font-serif text-4xl sm:text-5xl font-bold text-dark">
+        {displayValue}<span className="text-brand">{suffix}</span>
+      </div>
+      <p className="text-muted mt-2 font-medium">{label}</p>
+    </div>
+  );
+}
 
 const testimonials = [
   {
@@ -128,12 +423,12 @@ export default function LandingPage() {
   useEffect(() => {
     const newParticles = Array.from({ length: 20 }, (_, i) => ({
       id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      delay: Math.random() * 10,
-      duration: 15 + Math.random() * 10,
-      color: Math.random() > 0.5 ? "#b49772" : "#9a7f5c",
-      size: Math.random() * 3 + 2,
+      x: pseudoRandom(i * 1000 + 1) * 100,
+      y: pseudoRandom(i * 1000 + 2) * 100,
+      delay: pseudoRandom(i * 1000 + 3) * 10,
+      duration: 15 + pseudoRandom(i * 1000 + 4) * 10,
+      color: pseudoRandom(i * 1000 + 5) > 0.5 ? "#b49772" : "#9a7f5c",
+      size: pseudoRandom(i * 1000 + 6) * 3 + 2,
     }));
     setParticles(newParticles);
   }, []);
@@ -189,7 +484,7 @@ export default function LandingPage() {
               animationDelay: `${p.delay}s`,
               animationDuration: `${p.duration}s`,
               backgroundColor: p.color,
-              opacity: 0.3 + Math.random() * 0.3,
+              opacity: (0.3 + pseudoRandom(p.id + 789) * 0.3).toFixed(3)
             }}
           />
         ))}
@@ -306,122 +601,10 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right: Phone Mockup */}
+            {/* Right: QR Scan Simulator */}
             <div className={`relative ${animated ? "animate-fade-in-up" : "opacity-0"}`} style={{ animationDelay: "300ms" }}>
               <div className="relative mx-auto max-w-xs">
-                {/* Floating stat cards */}
-                <div className="absolute -top-4 -right-4 w-48 h-48 bg-card/80 backdrop-blur-md rounded-2xl shadow-xl border border-cream-dark p-4 animate-float hover-lift card-shine" style={{ animationDelay: "1000ms" }}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-xl bg-brand/10 flex items-center justify-center animate-scale-pulse">
-                      <svg className="h-5 w-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-dark text-sm">Truffle Risotto</p>
-                      <p className="text-brand font-bold">₹420</p>
-                    </div>
-                  </div>
-                  <div className="h-8 bg-cream rounded-xl animate-shimmer" />
-                </div>
-
-                <div className="absolute -bottom-6 -left-6 w-44 h-44 bg-card/80 backdrop-blur-md rounded-2xl shadow-xl border border-cream-dark p-4 animate-float hover-lift card-shine" style={{ animationDelay: "1500ms" }}>
-                  <div className="flex items-center gap-2 text-center h-full">
-                    <div className="flex-1 flex flex-col justify-center">
-                      <p className="font-semibold text-dark text-sm animate-text-reveal">4.9</p>
-                      <p className="text-muted text-xs">Avg Rating</p>
-                    </div>
-                    <div className="w-px h-10 bg-cream-dark mx-2" />
-                    <div className="flex-1 flex flex-col justify-center">
-                      <p className="font-semibold text-dark text-sm animate-text-reveal" style={{ animationDelay: "200ms" }}>50K+</p>
-                      <p className="text-muted text-xs">Orders</p>
-                    </div>
-                    <div className="w-px h-10 bg-cream-dark mx-2" />
-                    <div className="flex-1 flex flex-col justify-center">
-                      <p className="font-semibold text-dark text-sm animate-text-reveal" style={{ animationDelay: "400ms" }}>200+</p>
-                      <p className="text-muted text-xs">Restaurants</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Phone frame */}
-                <div className="relative aspect-[9/19.5] max-w-xs mx-auto">
-                  <div className="absolute inset-0 rounded-[40px] bg-gradient-to-b from-slate-800 via-slate-900 to-slate-800 shadow-2xl ring-4 ring-slate-700 ring-offset-2 ring-offset-cream animate-rotate-slow" style={{ animationDuration: "30s" }}>
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-slate-700 rounded-full" />
-                    {/* Screen content */}
-                    <div className="absolute inset-4 rounded-[32px] bg-gradient-to-br from-cream via-cream to-cream-dark overflow-hidden p-6 flex flex-col">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-sm text-muted">
-                          <div className="h-6 w-6 rounded-full bg-brand/20 flex items-center justify-center animate-pulse-ring">
-                            <svg className="h-3.5 w-3.5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9 3.75h.008v.008H12v-.008z" />
-                            </svg>
-                          </div>
-                          <span>Table 12</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm">
-                          <span className="text-yellow-400">★</span>
-                          <span className="font-semibold text-dark">4.8</span>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 space-y-3 pr-2">
-                        {[
-                          { name: "Truffle Risotto", price: "₹420", veg: true },
-                          { name: "Herb Crusted Salmon", price: "₹380", veg: false },
-                          { name: "Chocolate Lava Cake", price: "₹280", veg: true },
-                          { name: "Butter Garlic Prawns", price: "₹240", veg: false },
-                        ].map((item, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-3 p-3 bg-white/50 rounded-2xl backdrop-blur-sm animate-slide-in-right hover-lift card-shine"
-                            style={{ animationDelay: `${400 + i * 100}ms` }}
-                          >
-                            <div className="h-14 w-14 rounded-xl bg-cream flex items-center justify-center flex-shrink-0 img-zoom">
-                              <svg className="h-7 w-7 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0012 7.5a8.967 8.967 0 000-1.458z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.338 12.033a12.094 12.094 0 01-.377 2.9a.75.75 0 01-1.102-.258c-.434-.912-.98-1.754-1.664-2.51a.75.75 0 11.688-1.39c.762.856 1.431 1.824 2.078 2.868a.75.75 0 01-.259 1.103z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.662 12.033a12.094 12.094 0 00.377 2.9.75.75 0 001.102-.258c.434-.912.98-1.754 1.664-2.51.35-.788.577-1.616.577-2.478 0-.863-.227-1.689-.577-2.477a.75.75 0 10-1.376.516c.26.738.481 1.467.481 2.224 0 .756-.221 1.485-.481 2.224a.75.75 0 00.258 1.283z" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-dark truncate">{item.name}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="font-semibold text-brand text-sm">{item.price}</span>
-                                {item.veg && (
-                                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-100 animate-scale-pulse" style={{ animationDelay: `${i * 200}ms` }}>
-                                    <svg className="h-2.5 w-2.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                  </span>
-                                )}
-                              </div>
-                              <button className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-brand hover:bg-brand/20 transition-colors hover:scale-110">
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Cart bar */}
-                      <div className="mt-4 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-cream-dark animate-slide-in-up hover-lift" style={{ animationDelay: "1000ms" }}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-muted">Your Cart</p>
-                            <p className="font-bold text-dark">3 items • ₹1,320</p>
-                          </div>
-                          <button className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark hover:scale-105">
-                            Checkout
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Camera notch - inside rotating frame */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 mt-2 w-20 h-3 bg-slate-900 rounded-b-xl" />
-                  </div>
-                </div>
+                <QRScanSimulator />
               </div>
             </div>
           </div>
@@ -516,6 +699,46 @@ export default function LandingPage() {
                   </div>
                 )}
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Counter Section - Future Goals */}
+      <section className="relative z-10 py-20 px-4 sm:py-28 bg-cream-dark/30 scroll-reveal">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-16 stagger-children">
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-dark mb-4">
+              Our <span className="text-brand">Future Goals</span>
+            </h2>
+            <p className="text-lg text-muted max-w-2xl mx-auto">
+              Where we're headed — building the future of dining, today.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-4 gap-8">
+            {[
+              { label: "Orders Served", value: 1000000, suffix: "+", icon: (
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              )},
+              { label: "Restaurants", value: 1000, suffix: "+", icon: (
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              )},
+              { label: "Global Cities", value: 50, suffix: "+", icon: (
+                <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              )},
+              { label: "Zero Wait Time", value: 100, suffix: "%", icon: (
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12M12 6l4 4m-4-4l-4 4M3 19.5a5.5 5.5 0 014.773-5.454 5.5 5.5 0 0110.452 0A5.5 5.5 0 0121 19.5" />
+                </svg>
+              )},
+            ].map((stat, i) => (
+              <StatCounter key={stat.label} {...stat} delay={i * 100} />
             ))}
           </div>
         </div>
